@@ -18,75 +18,104 @@ Ce projet est réalisé dans le cadre d'un test technique de développement web 
 - Node.js
 - Express
 - TypeScript
+- SQLite
+- `better-sqlite3`
+- Vitest
 
-## Structure
+## Structure du projet
 
 ```text
 sales-invoices/
-├── frontend/
 ├── backend/
+├── frontend/
 ├── package.json
 └── README.md
 ```
 
 ## Prérequis
-- Node.js 24 ou une version lts compatible
+
+- Node.js 24 ou une version LTS compatible
 - npm
 
 ## Installation
 
-Depuis la racine du projet :
+Depuis la racine du projet, installer les dépendances :
 
 ```bash
 npm install
 ```
 
+Créer le schéma de la base de données :
+
+```bash
+npm run db:migrate --workspace backend
+```
+
+Insérer les données de démonstration :
+
+```bash
+npm run db:seed --workspace backend
+```
+
+Le seed est idempotent : il peut être exécuté plusieurs fois sans créer de doublons.
+
 ## Développement
-lancer le frontend :
+
+Lancer le frontend :
+
 ```bash
 npm run dev:frontend
 ```
 
-lancer le backend :
+Lancer le backend dans un second terminal :
+
 ```bash
 npm run dev:backend
 ```
 
-l'API est accessible à l'adresse suivante :
+L'API est accessible à l'adresse suivante :
+
 ```text
 http://localhost:3000
 ```
 
-la route de vérification est :
+Route de vérification :
 
 ```text
 GET /api/health
 ```
 
+## Tests
+
+Exécuter les tests :
+
+```bash
+npm test
+```
+
 ## Compilation
-```text
+
+Compiler le frontend et le backend :
+
+```bash
 npm run build
 ```
 
-## Intelligence artificielle
-Codex a été utilisé comme outil d'accompagnement pour analyser le sujet, discuter de la modélisation et guider certaines étapes du développement. Les choix métier et le code sont relus, compris et validés par le candidat.
-Ce README sera complété progressivement avec le modèle métier, les règles de validation, les transitions de statut et la documentation de l'API.
-
 ## Modèle métier
 
-une facture contient :
+Une facture contient :
 
 - un identifiant technique ;
 - un numéro définitif attribué lors de son émission ;
 - un client et son adresse de facturation ;
-- une ou plusieurs ligne facturées ;
+- une ou plusieurs lignes facturées ;
 - une date d'émission et une date d'échéance ;
 - un statut ;
 - les informations de règlement ;
-- une éventuelle référence d'avoir;
+- une éventuelle référence d'avoir ;
 - les dates techniques de création et de modification.
 
-les coordonnées du client son conservées comme un instantané dans la facture. Une modification ultérieure du client ne doit pas modifier une facture déjà émise.
+Les coordonnées du client sont conservées comme un instantané dans la facture. Une modification ultérieure du client ne doit pas modifier une facture déjà émise.
 
 Les dates sont échangées avec l'API au format ISO.
 
@@ -112,7 +141,7 @@ sent -> paid
 sent -> credited
 ```
 
-Les statuts paid et credited sont terminaux dans le périmètre actuel.
+Les statuts `paid` et `credited` sont terminaux dans le périmètre actuel.
 
 ## Principales règles métier
 
@@ -128,9 +157,9 @@ Les statuts paid et credited sont terminaux dans le périmètre actuel.
 
 Le retard est calculé dynamiquement. Il ne constitue pas un statut enregistré.
 
-## Calculs des montants
+## Calcul des montants
 
-Les montants monétaires sont enregistrés en centimes afin déviter les imprécisions des nombres décimaux JavaScript.
+Les montants monétaires sont enregistrés en centimes afin d'éviter les imprécisions des nombres décimaux JavaScript.
 
 Pour chaque ligne :
 
@@ -140,7 +169,7 @@ TVA = arrondi au centime du montant HT × taux de TVA
 montant TTC = montant HT + TVA
 ```
 
-les totaux de la facture correspondent à la somme des montants calculés ligne par ligne.
+Les totaux de la facture correspondent à la somme des montants calculés ligne par ligne.
 
 ```text
 reste à payer = total TTC - montant déjà réglé
@@ -150,12 +179,28 @@ reste à payer = total TTC - montant déjà réglé
 
 Le backend utilise SQLite avec `better-sqlite3`.
 
-La base générée localement n'est pas versionnée. Pour créer le schéma :
+La base générée localement n'est pas versionnée. Les migrations déjà exécutées sont enregistrées dans la table `schema_migrations`, ce qui permet de relancer la commande de migration sans recréer les tables.
 
-```bash
-npm run db:migrate --workspace backend
-```
+Le schéma sépare les factures et leurs lignes dans les tables `invoices` et `invoice_lines`.
 
-Les migrations déjà exécutées sont enregistrées dans la table schema_migrations, ce qui permet de relancer cette commande sans recréer les tables.
+Les informations du client sont conservées directement dans la facture sous forme d'instantané historique.
 
-Le schéma sépare les factures et leurs lignes dans les tables invoices et invoice_lines. Les informations du client sont conservées dans la facture sous forme d'instantané historique.
+## Jeu de données
+
+Le jeu de démonstration contient 10 factures représentant notamment :
+
+- un brouillon complet prêt à être émis ;
+- un brouillon invalide ;
+- une facture émise ;
+- plusieurs factures envoyées ;
+- une facture en retard ;
+- une facture partiellement réglée ;
+- deux factures réglées ;
+- une facture neutralisée par un avoir ;
+- une facture contenant plusieurs taux de TVA.
+
+## Utilisation de l'intelligence artificielle
+
+Codex a été utilisé comme outil d'accompagnement pour analyser le sujet, discuter de la modélisation et guider certaines étapes du développement.
+
+Les choix métier et le code ont été relus, compris et validés par le candidat.
