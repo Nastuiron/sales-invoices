@@ -29,3 +29,22 @@ export const invoiceListQuerySchema = z
 export type InvoiceListQuery = z.infer<
   typeof invoiceListQuerySchema
 >
+
+export const invoiceIdParamsSchema = z
+  .object({
+    id: z
+      .string()
+      .trim()
+      .min(1, {
+        error: "L'identifiant de la facture est obligatoire.",
+      })
+      .max(100, {
+        error:
+          "L'identifiant de la facture est trop long.",
+      })
+      .regex(/^[a-z0-9-]+$/, {
+        error:
+          "Le format de l'identifiant de la facture est invalide.",
+      }),
+  })
+  .strict()

@@ -254,6 +254,30 @@ Les protections actuellement appliquées sont :
 
 L'authentification et la gestion des autorisations sont hors du périmètre du test. Elles seraient nécessaires avant une exposition publique de l'API.
 
+### Récupérer le détail d'une facture
+
+```http
+GET /api/invoices/:id
+```
+
+Exemple :
+```http
+GET /api/invoices/invoice-overdue
+```
+
+la réponse contient :
+- les informations générales de la facture ;0
+- le client et son adresse de facturation ;
+- les lignes facturées ;
+- les dates importantes ;
+- les informations de règlement ;
+- l'éventuelle référence d'avoir ;
+- les montants HT, TVA et TTC ;
+- le reste à payer ;
+- l'indicateur de retard.
+
+Une facture inexistante reçoit une réponse HTTP `404` avec le code `INVOICE_NOT_FOUND`.
+ 
 ## Utilisation de l'intelligence artificielle
 
 Codex a été utilisé comme outil d'accompagnement pour analyser le sujet, discuter de la modélisation et guider certaines étapes du développement.

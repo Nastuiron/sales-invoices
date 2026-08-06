@@ -1,12 +1,19 @@
-import { calculateInvoiceAmounts } from '../domain/invoices/invoice.calculations.js'
+import {
+  calculateInvoiceAmounts,
+  type InvoiceAmounts,
+} from '../domain/invoices/invoice.calculations.js'
 import { isInvoiceOverdue } from '../domain/invoices/invoice.rules.js'
 import type {
+  Invoice,
   InvoiceStatus,
 } from '../domain/invoices/invoice.types.js'
 import {
   findAllInvoices,
+  findInvoiceById,
   type InvoiceFilters,
 } from '../repositories/invoice.repository.js'
+
+import { AppError } from '../errors/app.error.js'
 
 export interface InvoiceSummary {
   id: string
@@ -76,4 +83,36 @@ export function getInvoiceSummaries(
       ),
     }
   })
+}
+
+export interface InvoiceDetails
+  extends Invoice,
+    InvoiceAmounts {
+  isOverdue: boolean
+}
+
+export function getInvoiceDetails(
+  invoiceId: string,
+  currentDate = getCurrentDateInFrance(),
+): InvoiceDetails {
+  const invoice = findInvoiceById(invoiceId)
+
+  if (invoice === undefined) {
+    throw new AppError(
+      404,
+      'INVOICE_NOT_FOUND',
+      "La facture demandée n'existe pas.",
+    )
+  }
+
+  const amounts = calculateInvoiceAmounts(invoice)
+
+  return {
+    ...invoice,
+    ...amounts,
+    isOverdue: isInvoiceOverdue(
+      invoice,
+      currentDate,
+    ),
+  }
 }

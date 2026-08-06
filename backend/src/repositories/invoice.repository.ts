@@ -199,3 +199,33 @@ export function findAllInvoices(
     ),
   )
 }
+
+export function findInvoiceById(
+  invoiceId: string,
+): Invoice | undefined {
+  const invoiceRow = database
+    .prepare(`
+      SELECT *
+      FROM invoices
+      WHERE id = ?
+    `)
+    .get(invoiceId) as InvoiceRow | undefined
+
+  if (invoiceRow === undefined) {
+    return undefined
+  }
+
+  const lineRows = database
+    .prepare(`
+      SELECT *
+      FROM invoice_lines
+      WHERE invoice_id = ?
+      ORDER BY rowid
+    `)
+    .all(invoiceId) as InvoiceLineRow[]
+
+  return mapInvoice(
+    invoiceRow,
+    lineRows.map(mapInvoiceLine),
+  )
+}

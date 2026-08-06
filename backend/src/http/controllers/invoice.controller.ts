@@ -4,8 +4,12 @@ import type {
 } from 'express'
 
 import { AppError } from '../../errors/app.error.js'
-import { getInvoiceSummaries } from '../../services/invoice.service.js'
 import {
+  getInvoiceDetails,
+  getInvoiceSummaries,
+} from '../../services/invoice.service.js'
+import {
+  invoiceIdParamsSchema,
   invoiceListQuerySchema,
 } from '../schemas/invoice.schema.js'
 
@@ -40,5 +44,36 @@ export function listInvoicesController(
     meta: {
       count: invoices.length,
     },
+  })
+}
+
+export function getInvoiceController(
+  request: Request,
+  response: Response,
+): void {
+  const validationResult =
+    invoiceIdParamsSchema.safeParse(request.params)
+
+  if (!validationResult.success) {
+    throw new AppError(
+      400,
+      'INVALID_INVOICE_ID',
+      "L'identifiant de la facture est invalide.",
+      validationResult.error.issues.map((issue) => ({
+        field:
+          issue.path.length > 0
+            ? issue.path.join('.')
+            : 'id',
+        message: issue.message,
+      })),
+    )
+  }
+
+  const invoice = getInvoiceDetails(
+    validationResult.data.id,
+  )
+
+  response.status(200).json({
+    data: invoice,
   })
 }
