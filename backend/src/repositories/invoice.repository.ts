@@ -7,10 +7,77 @@ import type {
   VatRate,
 } from '../domain/invoices/invoice.types.js'
 
+interface DocumentNumberRow {
+  document_number: string
+}
+
+function getNextDocumentNumber(
+  column: 'invoice_number' | 'credit_note_number',
+  prefix: 'FAC' | 'AV',
+  year: string,
+): string {
+  const previousDocument = database
+    .prepare(`
+      SELECT ${column} AS document_number
+      FROM invoices
+      WHERE ${column} LIKE ?
+      ORDER BY ${column} DESC
+      LIMIT 1
+    `)
+    .get(`${prefix}-${year}-%`) as
+    | DocumentNumberRow
+    | undefined
+
+  const previousSequence =
+    previousDocument === undefined
+      ? 0
+      : Number(
+          previousDocument.document_number
+            .split('-')
+            .at(-1),
+        )
+
+  const nextSequence = previousSequence + 1
+
+  return `${prefix}-${year}-${String(
+    nextSequence,
+  ).padStart(4, '0')}`
+}
+
 export interface InvoiceFilters {
   search?: string
   status?: InvoiceStatus
 }
+
+export type InvoiceStatusUpdateCommand =
+  | {
+      invoiceId: string
+      expectedStatus: InvoiceStatus
+      nextStatus: 'issued'
+      occurredAt: string
+    }
+  | {
+      invoiceId: string
+      expectedStatus: InvoiceStatus
+      nextStatus: 'sent'
+      occurredAt: string
+    }
+  | {
+      invoiceId: string
+      expectedStatus: InvoiceStatus
+      nextStatus: 'paid'
+      occurredAt: string
+      amountPaidCents: number
+      paymentMethod: PaymentMethod
+      paymentReference?: string
+    }
+  | {
+      invoiceId: string
+      expectedStatus: InvoiceStatus
+      nextStatus: 'credited'
+      occurredAt: string
+      creditNoteReason: string
+    }
 
 interface InvoiceRow {
   id: string
@@ -228,4 +295,137 @@ export function findInvoiceById(
     invoiceRow,
     lineRows.map(mapInvoiceLine),
   )
+}
+
+export function updateInvoiceStatus(
+  command: InvoiceStatusUpdateCommand,
+): Invoice | undefined {
+  const executeUpdate = database.transaction(() => {
+    let changes = 0
+
+    if (command.nextStatus === 'issued') {
+      const year = command.occurredAt.slice(0, 4)
+
+      const invoiceNumber = getNextDocumentNumber(
+        'invoice_number',
+        'FAC',
+        year,
+      )
+
+      const result = database
+        .prepare(`
+          UPDATE invoices
+          SET
+            status = @nextStatus,
+            invoice_number = @invoiceNumber,
+            issue_date = COALESCE(
+              issue_date,
+              substr(@occurredAt, 1, 10)
+            ),
+            updated_at = @occurredAt
+          WHERE id = @invoiceId
+            AND status = @expectedStatus
+        `)
+        .run({
+          invoiceId: command.invoiceId,
+          expectedStatus: command.expectedStatus,
+          nextStatus: command.nextStatus,
+          invoiceNumber,
+          occurredAt: command.occurredAt,
+        })
+
+      changes = result.changes
+    }
+
+    if (command.nextStatus === 'sent') {
+      const result = database
+        .prepare(`
+          UPDATE invoices
+          SET
+            status = @nextStatus,
+            sent_at = @occurredAt,
+            updated_at = @occurredAt
+          WHERE id = @invoiceId
+            AND status = @expectedStatus
+        `)
+        .run({
+          invoiceId: command.invoiceId,
+          expectedStatus: command.expectedStatus,
+          nextStatus: command.nextStatus,
+          occurredAt: command.occurredAt,
+        })
+
+      changes = result.changes
+    }
+
+    if (command.nextStatus === 'paid') {
+      const result = database
+        .prepare(`
+          UPDATE invoices
+          SET
+            status = @nextStatus,
+            amount_paid_cents = @amountPaidCents,
+            payment_method = @paymentMethod,
+            payment_reference = @paymentReference,
+            paid_at = @occurredAt,
+            updated_at = @occurredAt
+          WHERE id = @invoiceId
+            AND status = @expectedStatus
+        `)
+        .run({
+          invoiceId: command.invoiceId,
+          expectedStatus: command.expectedStatus,
+          nextStatus: command.nextStatus,
+          amountPaidCents: command.amountPaidCents,
+          paymentMethod: command.paymentMethod,
+          paymentReference:
+            command.paymentReference ?? null,
+          occurredAt: command.occurredAt,
+        })
+
+      changes = result.changes
+    }
+
+    if (command.nextStatus === 'credited') {
+      const year = command.occurredAt.slice(0, 4)
+
+      const creditNoteNumber = getNextDocumentNumber(
+        'credit_note_number',
+        'AV',
+        year,
+      )
+
+      const result = database
+        .prepare(`
+          UPDATE invoices
+          SET
+            status = @nextStatus,
+            credit_note_number = @creditNoteNumber,
+            credit_note_issued_at = @occurredAt,
+            credit_note_reason = @creditNoteReason,
+            updated_at = @occurredAt
+          WHERE id = @invoiceId
+            AND status = @expectedStatus
+        `)
+        .run({
+          invoiceId: command.invoiceId,
+          expectedStatus: command.expectedStatus,
+          nextStatus: command.nextStatus,
+          creditNoteNumber,
+          creditNoteReason:
+            command.creditNoteReason,
+          occurredAt: command.occurredAt,
+        })
+
+      changes = result.changes
+    }
+
+    if (changes !== 1) {
+      return undefined
+    }
+
+    return findInvoiceById(command.invoiceId)
+  })
+
+  return executeUpdate.immediate()
 }

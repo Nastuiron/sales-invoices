@@ -17,12 +17,35 @@ export const notFoundHandler: RequestHandler = (
   })
 }
 
+function isMalformedJsonError(
+  error: unknown,
+): boolean {
+  return (
+    error instanceof SyntaxError &&
+    Reflect.get(error, 'status') === 400 &&
+    Reflect.get(error, 'type') ===
+      'entity.parse.failed'
+  )
+}
+
 export const errorHandler: ErrorRequestHandler = (
   error: unknown,
   _request,
   response,
   _next,
 ) => {
+  if (isMalformedJsonError(error)) {
+    response.status(400).json({
+      error: {
+        code: 'INVALID_JSON',
+        message:
+          'Le corps de la requête contient un JSON invalide.',
+      },
+    })
+
+    return
+  }
+
   if (error instanceof AppError) {
     response.status(error.statusCode).json({
       error: {

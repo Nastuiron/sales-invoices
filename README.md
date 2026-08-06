@@ -239,6 +239,14 @@ Un délai artificiel de 600 ms est appliqué aux routes de facturation afin de r
 
 Il peut être modifié avec la variable d'environnement `API_DELAY_MS`. Il est désactivé pendant les tests automatisés.
 
+Une erreur API peut être simulée en environnement hors production avec l'en-tête suivant :
+
+```http
+x-simulate-api-error: true
+```
+
+l'API retourne alors une réponse HTTP `503` avec le code `SIMULATED_API_ERROR`.
+
 ## Sécurité
 
 Les protections actuellement appliquées sont :
@@ -277,7 +285,64 @@ la réponse contient :
 - l'indicateur de retard.
 
 Une facture inexistante reçoit une réponse HTTP `404` avec le code `INVOICE_NOT_FOUND`.
- 
+
+### Modifier le statut d'une facture
+
+```http
+PATCH /api/invoices/:id/status
+```
+
+Les transistions autorisées dépendent du statut actuel de la facture.
+
+### Émettre un brouillon 
+
+```json
+{
+  "status": "issued"
+}
+```
+
+Le backend vérifie les données obligatoires et attribue automatiquement un numéro de facture.
+
+### Envoyer une facture
+
+```json
+{
+  "status": "sent"
+}
+```
+
+La date d'envoi est renseignée automatiquement.
+
+### Marquer une facture comme réglée
+
+```json
+{
+  "status": "paid",
+  "payment": {
+    "amountCents": 30000,
+    "method": "bank_transfer",
+    "reference": "VIR-2026-001"
+  }
+}
+```
+
+Le règlement fourni est ajouté aux montants déjà reçu. Le montant final doit correspondre exactement au total TTC.
+
+### Émettre un avoir
+
+```json
+{
+  "status": "credited",
+  "creditNote": {
+    "reason": "Prestation annulé avant son démarrage."
+  }
+}
+```
+
+Le backend attribue automatiquement le numéro et la date de l'avoir.
+Les transistions interdites reçoivent une réponse HTTP `409`. Les données métier incomplètes ou incohérentes reçoivent une réponse HTTP `422`.
+
 ## Utilisation de l'intelligence artificielle
 
 Codex a été utilisé comme outil d'accompagnement pour analyser le sujet, discuter de la modélisation et guider certaines étapes du développement.
