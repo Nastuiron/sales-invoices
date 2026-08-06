@@ -199,6 +199,61 @@ Le jeu de démonstration contient 10 factures représentant notamment :
 - une facture neutralisée par un avoir ;
 - une facture contenant plusieurs taux de TVA.
 
+## API
+
+### Récupérer les factures
+
+```http
+GET /api/invoices
+```
+
+Paramètres facultatifs :
+
+| Paramètre | Description |
+| --- | --- |
+| `search` | Recherche sur le numéro de facture, le client ou la référence de commande |
+| `status` | Filtre sur le statut technique |
+
+Les deux paramètres peuvent être utilisés simultanément :
+
+```http
+GET /api/invoices?search=nova&status=sent
+```
+
+La réponse contient les factures, leurs montants calculés, leur reste à payer et un indicateur de retard.
+
+```json
+{
+  "data": [],
+  "meta": {
+    "count": 0
+  }
+}
+```
+
+Les paramètres sont validés avec Zod. Une requête invalide reçoit une réponse HTTP `400`.
+
+## Simulation du réseau
+
+Un délai artificiel de 600 ms est appliqué aux routes de facturation afin de rendre les états de chargement visibles dans l'interface.
+
+Il peut être modifié avec la variable d'environnement `API_DELAY_MS`. Il est désactivé pendant les tests automatisés.
+
+## Sécurité
+
+Les protections actuellement appliquées sont :
+
+- validation des entrées avec Zod ;
+- requêtes SQLite paramétrées ;
+- en-têtes HTTP configurés avec Helmet ;
+- suppression de l'en-tête `X-Powered-By` ;
+- limitation du corps JSON à 20 ko ;
+- limitation du nombre de requêtes ;
+- politique CORS limitée au frontend local ;
+- réponses d'erreur sans détails techniques internes.
+
+L'authentification et la gestion des autorisations sont hors du périmètre du test. Elles seraient nécessaires avant une exposition publique de l'API.
+
 ## Utilisation de l'intelligence artificielle
 
 Codex a été utilisé comme outil d'accompagnement pour analyser le sujet, discuter de la modélisation et guider certaines étapes du développement.
