@@ -146,3 +146,16 @@ les totaux de la facture correspondent à la somme des montants calculés ligne 
 reste à payer = total TTC - montant déjà réglé
 ```
 
+## Base de données
+
+Le backend utilise SQLite avec `better-sqlite3`.
+
+La base générée localement n'est pas versionnée. Pour créer le schéma :
+
+```bash
+npm run db:migrate --workspace backend
+```
+
+Les migrations déjà exécutées sont enregistrées dans la table schema_migrations, ce qui permet de relancer cette commande sans recréer les tables.
+
+Le schéma sépare les factures et leurs lignes dans les tables invoices et invoice_lines. Les informations du client sont conservées dans la facture sous forme d'instantané historique.
