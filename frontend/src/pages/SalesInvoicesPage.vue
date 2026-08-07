@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
+import InvoiceDetailsDrawer from '../components/invoices/InvoiceDetailsDrawer.vue'
 import InvoiceFilters from '../components/invoices/InvoiceFilters.vue'
 import InvoiceTable from '../components/invoices/InvoiceTable.vue'
+import { useInvoiceDetails } from '../composables/useInvoiceDetails'
 import { useInvoices } from '../composables/useInvoices'
 
 const {
@@ -18,6 +20,14 @@ const {
   simulateError,
 } = useInvoices()
 
+const {
+  invoice: selectedInvoice,
+  isLoading: isDetailsLoading,
+  errorMessage: detailsErrorMessage,
+  loadInvoice,
+  closeInvoice,
+} = useInvoiceDetails()
+
 const selectedInvoiceId = ref<string | null>(
   null,
 )
@@ -28,6 +38,18 @@ function selectInvoice(
   invoiceId: string,
 ): void {
   selectedInvoiceId.value = invoiceId
+  void loadInvoice(invoiceId)
+}
+
+function closeInvoiceDetails(): void {
+  selectedInvoiceId.value = null
+  closeInvoice()
+}
+
+function retryInvoiceDetails(): void {
+  if (selectedInvoiceId.value !== null) {
+    void loadInvoice(selectedInvoiceId.value)
+  }
 }
 </script>
 
@@ -155,14 +177,14 @@ function selectInvoice(
       @select="selectInvoice"
     />
 
-    <p
-      v-if="selectedInvoiceId !== null"
-      class="sales-invoices__selection"
-      aria-live="polite"
-    >
-      Facture sélectionnée :
-      <code>{{ selectedInvoiceId }}</code>
-    </p>
+    <InvoiceDetailsDrawer
+        :is-open="selectedInvoiceId !== null"
+        :invoice="selectedInvoice"
+        :is-loading="isDetailsLoading"
+        :error-message="detailsErrorMessage"
+        @close="closeInvoiceDetails"
+        @retry="retryInvoiceDetails"
+    />
   </main>
 </template>
 
@@ -282,12 +304,6 @@ h1 {
   border-top-color: #2563eb;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
-}
-
-.sales-invoices__selection {
-  margin: 0;
-  color: #64748b;
-  font-size: 0.875rem;
 }
 
 @keyframes spin {
