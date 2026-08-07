@@ -6,6 +6,7 @@ import InvoiceFilters from '../components/invoices/InvoiceFilters.vue'
 import InvoiceTable from '../components/invoices/InvoiceTable.vue'
 import { useInvoiceDetails } from '../composables/useInvoiceDetails'
 import { useInvoices } from '../composables/useInvoices'
+import type { UpdateInvoiceStatusInput } from '../types/invoice'
 
 const {
   invoices,
@@ -24,7 +25,11 @@ const {
   invoice: selectedInvoice,
   isLoading: isDetailsLoading,
   errorMessage: detailsErrorMessage,
+  isUpdating,
+  actionErrorMessage,
   loadInvoice,
+  updateInvoiceStatus,
+  clearActionError,
   closeInvoice,
 } = useInvoiceDetails()
 
@@ -49,6 +54,17 @@ function closeInvoiceDetails(): void {
 function retryInvoiceDetails(): void {
   if (selectedInvoiceId.value !== null) {
     void loadInvoice(selectedInvoiceId.value)
+  }
+}
+
+async function handleStatusUpdate(
+  input: UpdateInvoiceStatusInput,
+): Promise<void> {
+  const wasUpdated =
+    await updateInvoiceStatus(input)
+
+  if (wasUpdated) {
+    await loadInvoices()
   }
 }
 </script>
@@ -182,8 +198,12 @@ function retryInvoiceDetails(): void {
         :invoice="selectedInvoice"
         :is-loading="isDetailsLoading"
         :error-message="detailsErrorMessage"
+        :is-updating="isUpdating"
+        :action-error-message="actionErrorMessage"
         @close="closeInvoiceDetails"
         @retry="retryInvoiceDetails"
+        @update-status="handleStatusUpdate"
+        @clear-action-error="clearActionError"
     />
   </main>
 </template>

@@ -13,18 +13,24 @@ import {
 } from '../../utils/formatters'
 import type {
   InvoiceDetails,
+  UpdateInvoiceStatusInput,
 } from '../../types/invoice'
+import InvoiceStatusActions from './InvoiceStatusActions.vue'
 
 const props = defineProps<{
   isOpen: boolean
   invoice: InvoiceDetails | null
   isLoading: boolean
   errorMessage: string | null
+  isUpdating: boolean
+  actionErrorMessage: string | null
 }>()
 
 const emit = defineEmits<{
   close: []
   retry: []
+  updateStatus: [input: UpdateInvoiceStatusInput]
+  clearActionError: []
 }>()
 
 const closeButton = ref<HTMLButtonElement | null>(null)
@@ -409,6 +415,13 @@ function lineTotalCents(
             <h3>Notes</h3>
             <p>{{ invoice.notes }}</p>
           </section>
+          <InvoiceStatusActions
+            :invoice="invoice"
+            :is-updating="isUpdating"
+            :error-message="actionErrorMessage"
+            @submit="emit('updateStatus', $event)"
+            @clear-error="emit('clearActionError')"
+          />
         </div>
       </aside>
     </div>
