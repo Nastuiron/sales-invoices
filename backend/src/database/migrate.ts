@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 
-import { database } from './database.js'
+import { createTransaction, database } from './database.js'
 
 const migrationId = '001_create_invoices'
 
@@ -33,7 +33,7 @@ if (alreadyApplied !== undefined) {
     'utf8',
   )
 
-  const applyMigration = database.transaction(() => {
+  const applyMigration = createTransaction(() => {
     database.exec(migrationSql)
 
     database

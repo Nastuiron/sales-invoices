@@ -1,4 +1,4 @@
-import { database } from '../database/database.js'
+import { database, createTransaction } from '../database/database.js'
 import type {
   Invoice,
   InvoiceLine,
@@ -24,7 +24,7 @@ function getNextDocumentNumber(
       ORDER BY ${column} DESC
       LIMIT 1
     `)
-    .get(`${prefix}-${year}-%`) as
+    .get(`${prefix}-${year}-%`) as unknown as
     | DocumentNumberRow
     | undefined
 
@@ -230,7 +230,7 @@ export function findAllInvoices(
         COALESCE(issue_date, created_at) DESC,
         created_at DESC
     `)
-    .all(parameters) as InvoiceRow[]
+    .all(parameters) as unknown as InvoiceRow[]
 
   if (invoiceRows.length === 0) {
     return []
@@ -248,7 +248,7 @@ export function findAllInvoices(
       WHERE invoice_id IN (${placeholders})
       ORDER BY rowid
     `)
-    .all(...invoiceIds) as InvoiceLineRow[]
+    .all(...invoiceIds) as unknown as InvoiceLineRow[]
 
   const linesByInvoiceId = new Map<string, InvoiceLine[]>()
 
@@ -276,7 +276,9 @@ export function findInvoiceById(
       FROM invoices
       WHERE id = ?
     `)
-    .get(invoiceId) as InvoiceRow | undefined
+    .get(invoiceId) as unknown as
+  | InvoiceRow
+  | undefined
 
   if (invoiceRow === undefined) {
     return undefined
@@ -289,7 +291,7 @@ export function findInvoiceById(
       WHERE invoice_id = ?
       ORDER BY rowid
     `)
-    .all(invoiceId) as InvoiceLineRow[]
+    .all(invoiceId) as unknown as InvoiceLineRow[]
 
   return mapInvoice(
     invoiceRow,
@@ -300,7 +302,7 @@ export function findInvoiceById(
 export function updateInvoiceStatus(
   command: InvoiceStatusUpdateCommand,
 ): Invoice | undefined {
-  const executeUpdate = database.transaction(() => {
+  const executeUpdate = createTransaction(() => {
     let changes = 0
 
     if (command.nextStatus === 'issued') {
@@ -334,7 +336,7 @@ export function updateInvoiceStatus(
           occurredAt: command.occurredAt,
         })
 
-      changes = result.changes
+      changes = Number(result.changes)
     }
 
     if (command.nextStatus === 'sent') {
@@ -355,7 +357,7 @@ export function updateInvoiceStatus(
           occurredAt: command.occurredAt,
         })
 
-      changes = result.changes
+      changes = Number(result.changes)
     }
 
     if (command.nextStatus === 'paid') {
@@ -383,7 +385,7 @@ export function updateInvoiceStatus(
           occurredAt: command.occurredAt,
         })
 
-      changes = result.changes
+      changes = Number(result.changes)
     }
 
     if (command.nextStatus === 'credited') {
@@ -417,7 +419,7 @@ export function updateInvoiceStatus(
           occurredAt: command.occurredAt,
         })
 
-      changes = result.changes
+      changes = Number(result.changes)
     }
 
     if (changes !== 1) {
@@ -427,5 +429,5 @@ export function updateInvoiceStatus(
     return findInvoiceById(command.invoiceId)
   })
 
-  return executeUpdate.immediate()
+  return executeUpdate()
 }

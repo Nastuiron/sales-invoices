@@ -1,4 +1,4 @@
-import { database } from './database.js'
+import { createTransaction, database } from './database.js'
 import { invoiceSeedData } from './seeds/invoices.seed.js'
 
 const insertInvoice = database.prepare(`
@@ -91,7 +91,7 @@ const insertInvoiceLine = database.prepare(`
   )
 `)
 
-const seedDatabase = database.transaction(() => {
+const seedDatabase = createTransaction(() => {
   for (const invoice of invoiceSeedData) {
     insertInvoice.run({
       id: invoice.id,
@@ -151,16 +151,24 @@ const seedDatabase = database.transaction(() => {
   }
 })
 
-interface InvoiceCountRow {
-  count: number
-}
-
 try {
   seedDatabase()
 
   const result = database
-    .prepare('SELECT COUNT(*) AS count FROM invoices')
-    .get() as InvoiceCountRow
+    .prepare(`
+      SELECT COUNT(*) AS count
+      FROM invoices
+    `)
+    .get()
+
+  if (
+    result === undefined
+    || typeof result.count !== 'number'
+  ) {
+    throw new Error(
+      'Impossible de compter les factures générées.',
+    )
+  }
 
   console.log(
     `Jeu de données disponible : ${result.count} factures`,

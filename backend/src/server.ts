@@ -29,7 +29,7 @@ function shutdown(signal: string): void {
 
     server.closeAllConnections()
 
-    if (database.open) {
+    if (database.isOpen) {
       database.close()
     }
 
@@ -41,7 +41,7 @@ function shutdown(signal: string): void {
   server.close((error) => {
     clearTimeout(forcedShutdown)
 
-    if (database.open) {
+    if (database.isOpen) {
       database.close()
     }
 

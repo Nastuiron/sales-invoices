@@ -1,7 +1,12 @@
-import { mkdirSync } from 'node:fs'
-import { fileURLToPath } from 'node:url'
-
-import Database from 'better-sqlite3'
+import {
+  mkdirSync,
+} from 'node:fs'
+import {
+  DatabaseSync,
+} from 'node:sqlite'
+import {
+  fileURLToPath,
+} from 'node:url'
 
 const dataDirectory = fileURLToPath(
   new URL('../../data/', import.meta.url),
@@ -12,10 +17,41 @@ mkdirSync(dataDirectory, {
 })
 
 const databasePath = fileURLToPath(
-  new URL('../../data/invoices.db', import.meta.url),
+  new URL(
+    '../../data/invoices.db',
+    import.meta.url,
+  ),
 )
 
-export const database = new Database(databasePath)
+export const database =
+  new DatabaseSync(databasePath)
 
-database.pragma('foreign_keys = ON')
-database.pragma('journal_mode = WAL')
+database.exec('PRAGMA foreign_keys = ON')
+database.exec('PRAGMA journal_mode = WAL')
+
+export function createTransaction<
+  Arguments extends unknown[],
+  Result,
+>(
+  operation: (
+    ...args: Arguments
+  ) => Result,
+): (...args: Arguments) => Result {
+  return (...args: Arguments): Result => {
+    database.exec('BEGIN IMMEDIATE')
+
+    try {
+      const result = operation(...args)
+
+      database.exec('COMMIT')
+
+      return result
+    } catch (error: unknown) {
+      if (database.isTransaction) {
+        database.exec('ROLLBACK')
+      }
+
+      throw error
+    }
+  }
+}
