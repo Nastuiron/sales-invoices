@@ -24,6 +24,7 @@ const props = defineProps<{
   errorMessage: string | null
   isUpdating: boolean
   actionErrorMessage: string | null
+  successMessage: string | null
 }>()
 
 const emit = defineEmits<{
@@ -34,6 +35,8 @@ const emit = defineEmits<{
 }>()
 
 const closeButton = ref<HTMLButtonElement | null>(null)
+
+const drawerElement = ref<HTMLElement | null>(null)
 
 const paymentMethodLabels = {
   bank_transfer: 'Virement bancaire',
@@ -46,12 +49,58 @@ function close() {
   emit('close')
 }
 
-function handleKeydown(event: KeyboardEvent) {
+function handleKeydown(
+  event: KeyboardEvent,
+): void {
   if (
     event.key === 'Escape'
     && props.isOpen
   ) {
     close()
+    return
+  }
+
+  if (
+    event.key !== 'Tab'
+    || drawerElement.value === null
+  ) {
+    return
+  }
+
+  const focusableElements = Array.from(
+    drawerElement.value.querySelectorAll<HTMLElement>(
+      [
+        'button:not([disabled])',
+        'input:not([disabled])',
+        'select:not([disabled])',
+        'textarea:not([disabled])',
+        'a[href]',
+        '[tabindex]:not([tabindex="-1"])',
+      ].join(','),
+    ),
+  )
+
+  if (focusableElements.length === 0) {
+    event.preventDefault()
+    return
+  }
+
+  const firstElement = focusableElements[0]
+  const lastElement =
+    focusableElements[focusableElements.length - 1]
+
+  if (
+    event.shiftKey
+    && document.activeElement === firstElement
+  ) {
+    event.preventDefault()
+    lastElement?.focus()
+  } else if (
+    !event.shiftKey
+    && document.activeElement === lastElement
+  ) {
+    event.preventDefault()
+    firstElement?.focus()
   }
 }
 
@@ -59,6 +108,9 @@ watch(
   () => props.isOpen,
   async (isOpen) => {
     if (isOpen) {
+
+      document.body.style.overflow = 'hidden'
+
       document.addEventListener(
         'keydown',
         handleKeydown,
@@ -67,6 +119,8 @@ watch(
       await nextTick()
       closeButton.value?.focus()
     } else {
+      document.body.style.removeProperty('overflow')
+
       document.removeEventListener(
         'keydown',
         handleKeydown,
@@ -79,6 +133,7 @@ watch(
 )
 
 onBeforeUnmount(() => {
+  document.body.style.removeProperty('overflow')
   document.removeEventListener(
     'keydown',
     handleKeydown,
@@ -134,11 +189,13 @@ function lineTotalCents(
       <button
         class="drawer-backdrop"
         type="button"
+        :tabindex="-1"
         aria-label="Fermer le détail de la facture"
         @click="close"
       />
 
       <aside
+        ref="drawerElement"
         class="invoice-drawer"
         role="dialog"
         aria-modal="true"
@@ -415,6 +472,14 @@ function lineTotalCents(
             <h3>Notes</h3>
             <p>{{ invoice.notes }}</p>
           </section>
+          <p
+          v-if="successMessage"
+          class="drawer-success"
+          role="status"
+          aria-live="polite"
+          >
+            {{ successMessage }}
+          </p>
           <InvoiceStatusActions
             :invoice="invoice"
             :is-updating="isUpdating"
@@ -518,6 +583,16 @@ function lineTotalCents(
 
 .drawer-section h3 {
   margin-top: 0;
+}
+
+.drawer-success {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border: 1px solid #86efac;
+  border-radius: 0.75rem;
+  background: #f0fdf4;
+  color: #166534;
+  font-weight: 600;
 }
 
 .summary-grid {

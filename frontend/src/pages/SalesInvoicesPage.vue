@@ -37,35 +37,50 @@ const selectedInvoiceId = ref<string | null>(
   null,
 )
 
+const actionSuccessMessage = ref<string | null>(
+    null,
+)
+
 const canSimulateError = import.meta.env.DEV
+
+const statusSuccessMessages: Record<UpdateInvoiceStatusInput['status'], string> = {
+    issued: 'La facture à été émise avec succès.',
+    sent: 'La facture à été marquée comme envoyée.',
+    paid: 'La facture à été marquée comme payée avec succès.',
+    credited: 'L\'avoir à été créé avec succès.',
+}
 
 function selectInvoice(
   invoiceId: string,
 ): void {
-  selectedInvoiceId.value = invoiceId
-  void loadInvoice(invoiceId)
+    actionSuccessMessage.value = null
+    selectedInvoiceId.value = invoiceId
+    void loadInvoice(invoiceId)
 }
 
 function closeInvoiceDetails(): void {
-  selectedInvoiceId.value = null
-  closeInvoice()
+    actionSuccessMessage.value = null
+    selectedInvoiceId.value = null
+    closeInvoice()
 }
 
 function retryInvoiceDetails(): void {
-  if (selectedInvoiceId.value !== null) {
-    void loadInvoice(selectedInvoiceId.value)
-  }
+    if (selectedInvoiceId.value !== null) {
+        void loadInvoice(selectedInvoiceId.value)
+    }
 }
 
 async function handleStatusUpdate(
   input: UpdateInvoiceStatusInput,
 ): Promise<void> {
-  const wasUpdated =
-    await updateInvoiceStatus(input)
+    actionSuccessMessage.value = null
+    const wasUpdated =
+        await updateInvoiceStatus(input)
 
-  if (wasUpdated) {
-    await loadInvoices()
-  }
+    if (wasUpdated) {
+        await loadInvoices()
+        actionSuccessMessage.value = statusSuccessMessages[input.status]
+    }
 }
 </script>
 
@@ -200,6 +215,7 @@ async function handleStatusUpdate(
         :error-message="detailsErrorMessage"
         :is-updating="isUpdating"
         :action-error-message="actionErrorMessage"
+        :success-message="actionSuccessMessage"
         @close="closeInvoiceDetails"
         @retry="retryInvoiceDetails"
         @update-status="handleStatusUpdate"
