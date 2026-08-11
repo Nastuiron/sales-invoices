@@ -43,11 +43,14 @@ const actionSuccessMessage = ref<string | null>(
 
 const canSimulateError = import.meta.env.DEV
 
-const statusSuccessMessages: Record<UpdateInvoiceStatusInput['status'], string> = {
-    issued: 'La facture à été émise avec succès.',
-    sent: 'La facture à été marquée comme envoyée.',
-    paid: 'La facture à été marquée comme payée avec succès.',
-    credited: 'L\'avoir à été créé avec succès.',
+const statusSuccessMessages: Record<
+  UpdateInvoiceStatusInput['status'],
+  string
+> = {
+  issued: 'La facture a été émise avec succès.',
+  sent: 'La facture a été marquée comme envoyée.',
+  paid: 'Le paiement a été enregistré avec succès.',
+  credited: 'L’avoir a été créé avec succès.',
 }
 
 function selectInvoice(
@@ -228,7 +231,9 @@ async function handleStatusUpdate(
 .sales-invoices {
   display: grid;
   gap: 1.5rem;
-  width: min(100% - 2rem, 90rem);
+  width: calc(100% - 2rem);
+  max-width: 90rem;
+  min-width: 0;
   margin: 0 auto;
   padding: 3rem 0;
 }

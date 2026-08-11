@@ -68,7 +68,7 @@ const emit = defineEmits<{
           v-for="invoice in invoices"
           :key="invoice.id"
         >
-          <td>
+          <td data-label="Facture">
             <span
               v-if="invoice.invoiceNumber"
               class="invoice-table__number"
@@ -84,17 +84,18 @@ const emit = defineEmits<{
             </span>
           </td>
 
-          <td>
+          <td data-label="Client">
             <span class="invoice-table__customer">
               {{ invoice.customer.name }}
             </span>
           </td>
 
-          <td>
+          <td data-label="Émission">
             {{ formatDate(invoice.issueDate) }}
           </td>
 
           <td
+            data-label="Échéance"
             :class="{
               'invoice-table__overdue':
                 invoice.isOverdue,
@@ -103,11 +104,11 @@ const emit = defineEmits<{
             {{ formatDate(invoice.dueDate) }}
           </td>
 
-          <td class="invoice-table__amount">
+          <td data-label="Montant TTC" class="invoice-table__amount">
             {{ formatCurrency(invoice.totalCents) }}
           </td>
 
-          <td class="invoice-table__amount">
+          <td data-label="Reste à payer" class="invoice-table__amount">
             {{
               formatCurrency(
                 invoice.remainingAmountCents,
@@ -115,7 +116,7 @@ const emit = defineEmits<{
             }}
           </td>
 
-          <td>
+          <td data-label="Statut">
             <InvoiceStatusBadge
               :status="invoice.status"
               :is-overdue="invoice.isOverdue"
@@ -142,6 +143,8 @@ const emit = defineEmits<{
 
 <style scoped>
 .invoice-table {
+  width: 100%;
+  min-width: 0;
   overflow-x: auto;
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -243,5 +246,103 @@ tbody tr:hover {
   clip: rect(0 0 0 0);
   white-space: nowrap;
   border: 0;
+}
+
+@media (max-width: 1120px) {
+  .invoice-table {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  table {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  tbody {
+    display: grid;
+    gap: 1rem;
+  }
+
+  tbody tr {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      minmax(0, 1fr);
+    gap: 0.85rem 1rem;
+    padding: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.875rem;
+    background: #ffffff;
+    box-shadow:
+      0 1px 2px rgb(15 23 42 / 4%);
+  }
+
+  tbody tr:hover {
+    background: #ffffff;
+  }
+
+  td {
+    display: grid;
+    align-content: start;
+    gap: 0.25rem;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.7rem;
+    font-weight: 750;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .invoice-table__amount {
+    text-align: left;
+  }
+
+  .invoice-table__action {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+
+  .invoice-table__action::before {
+    content: none;
+  }
+
+  .invoice-table__action button {
+    width: 100%;
+    min-height: 2.75rem;
+  }
+}
+
+@media (
+  min-width: 700px
+) and (
+  max-width: 1120px
+) {
+  tbody tr {
+    grid-template-columns:
+      repeat(4, minmax(0, 1fr));
+  }
+
+  .invoice-table__action {
+    grid-column: 1 / -1;
+  }
 }
 </style>

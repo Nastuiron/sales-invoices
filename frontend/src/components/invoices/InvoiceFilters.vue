@@ -112,6 +112,8 @@ function handleStatusChange(event: Event): void {
 
 <style scoped>
 .invoice-filters {
+  width: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns:
     minmax(16rem, 1fr)
@@ -178,12 +180,15 @@ function handleStatusChange(event: Event): void {
 
 .invoice-filters input:disabled,
 .invoice-filters select:disabled,
+.invoice-filters textarea:disabled,
 .invoice-filters button:disabled {
   cursor: not-allowed;
   opacity: 0.6;
 }
 
 .invoice-filters__clear {
+  width: 100%;
+  justify-self: stretch;
   min-height: 2.75rem;
   padding: 0.65rem 1rem;
   border: 0;

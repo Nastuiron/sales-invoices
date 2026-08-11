@@ -11,7 +11,7 @@ import InvoiceStatusActions from '../src/components/invoices/InvoiceStatusAction
 import type {
   InvoiceDetails,
   InvoiceStatus,
-} from '../src/types/invoice'
+} from '../src/types/invoice.ts'
 
 function createInvoice(
   status: InvoiceStatus,

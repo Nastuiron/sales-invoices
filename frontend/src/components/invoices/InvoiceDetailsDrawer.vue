@@ -291,7 +291,21 @@ function lineTotalCents(
               </div>
             </dl>
           </section>
-
+          <p
+            v-if="successMessage"
+            class="drawer-success"
+            role="status"
+            aria-live="polite"
+          >
+            {{ successMessage }}
+          </p>
+          <InvoiceStatusActions
+            :invoice="invoice"
+            :is-updating="isUpdating"
+            :error-message="actionErrorMessage"
+            @submit="emit('updateStatus', $event)"
+            @clear-error="emit('clearActionError')"
+          />
           <section class="drawer-section">
             <h3>Client</h3>
 
@@ -334,17 +348,17 @@ function lineTotalCents(
                     v-for="line in invoice.lines"
                     :key="line.id"
                   >
-                    <td>{{ line.description }}</td>
-                    <td>{{ line.quantity }}</td>
-                    <td>
+                    <td data-label="Description">{{ line.description }}</td>
+                    <td data-label="Quantité">{{ line.quantity }}</td>
+                    <td data-label="Prix HT">
                       {{
                         formatCurrency(
                           line.unitPriceCents,
                         )
                       }}
                     </td>
-                    <td>{{ line.vatRate }} %</td>
-                    <td>
+                    <td data-label="TVA">{{ line.vatRate }} %</td>
+                    <td data-label="Total TTC">
                       {{
                         formatCurrency(
                           lineTotalCents(
@@ -472,21 +486,6 @@ function lineTotalCents(
             <h3>Notes</h3>
             <p>{{ invoice.notes }}</p>
           </section>
-          <p
-          v-if="successMessage"
-          class="drawer-success"
-          role="status"
-          aria-live="polite"
-          >
-            {{ successMessage }}
-          </p>
-          <InvoiceStatusActions
-            :invoice="invoice"
-            :is-updating="isUpdating"
-            :error-message="actionErrorMessage"
-            @submit="emit('updateStatus', $event)"
-            @clear-error="emit('clearActionError')"
-          />
         </div>
       </aside>
     </div>
@@ -498,6 +497,9 @@ function lineTotalCents(
   position: fixed;
   z-index: 1000;
   inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .drawer-backdrop {
@@ -509,13 +511,30 @@ function lineTotalCents(
   cursor: default;
 }
 
+.drawer-header > div,
+.drawer-content,
+.drawer-summary,
+.drawer-section {
+  min-width: 0;
+}
+
+.drawer-header h2,
+.drawer-section p,
+address span {
+  overflow-wrap: anywhere;
+}
+
 .invoice-drawer {
   position: absolute;
   top: 0;
   right: 0;
-  width: min(760px, 100%);
-  height: 100%;
+  bottom: 0;
+  width: min(760px, 100vw);
+  max-width: 100vw;
+  height: 100dvh;
+  overflow-x: hidden;
   overflow-y: auto;
+  overscroll-behavior: contain;
   background: #ffffff;
   box-shadow: -12px 0 32px rgb(15 23 42 / 18%);
 }
@@ -681,13 +700,87 @@ address {
 }
 
 @media (max-width: 600px) {
-  .drawer-header,
+  .drawer-backdrop {
+    display: none;
+  }
+
+  .invoice-drawer {
+    inset: 0;
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    box-shadow: none;
+  }
+
+  .drawer-header {
+    padding: 1rem;
+  }
+
   .drawer-content {
+    gap: 0.875rem;
+    padding: 1rem;
+  }
+
+  .drawer-summary,
+  .drawer-section {
     padding: 1rem;
   }
 
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .lines-wrapper {
+    overflow: visible;
+  }
+
+  .invoice-lines {
+    display: block;
+    width: 100%;
+  }
+
+  .invoice-lines thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .invoice-lines tbody {
+    display: grid;
+    gap: 0.75rem;
+  }
+
+  .invoice-lines tr {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.875rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.625rem;
+  }
+
+  .invoice-lines td {
+    display: grid;
+    grid-template-columns:
+      minmax(6rem, 0.75fr)
+      minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0;
+    border: 0;
+    white-space: normal;
+  }
+
+  .invoice-lines td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+
+  .amounts-section dl div {
+    gap: 1rem;
   }
 }
 </style>
